@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:9001';
+let API_BASE_URL = localStorage.getItem('API_BASE_URL') || 'http://localhost:9001';
 let jwtToken = '';
 let apiKey = '';
 let map, markersLayer, previewMarker;
@@ -179,6 +179,15 @@ function setupEventListeners() {
         document.getElementById('addRouteCode').value = routeCode;
     });
     document.getElementById('loadPersonasBtn').addEventListener('click', loadPersonas);
+    document.getElementById('configApiBtn').addEventListener('click', () => {
+        const currentUrl = localStorage.getItem('API_BASE_URL') || 'http://localhost:9001';
+        const newUrl = prompt('Ingresa la URL del Backend (ej. http://localhost:9001 o la URL de tu túnel público):', currentUrl);
+        if (newUrl !== null) {
+            localStorage.setItem('API_BASE_URL', newUrl.trim());
+            showToast('URL del API actualizada. Recargando...', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        }
+    });
 }
 
 // --- Fetch Wrapper with Auth ---

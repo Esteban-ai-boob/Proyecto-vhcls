@@ -639,3 +639,27 @@ button.w-full {
 @keyframes toast-out {
     to { opacity: 0; transform: translateY(20px); }
 }
+
+/* Configurar API button styling */
+.config-api-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.config-api-btn:hover {
+    border-color: var(--border-focus);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}

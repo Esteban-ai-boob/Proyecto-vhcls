@@ -106,8 +106,12 @@
                 </div>
             </nav>
 
-            <div class="auth-badge-container">
-                <span id="authBadge" class="badge danger">Sin Token</span>
+            <div class="auth-badge-container" style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                <span id="authBadge" class="badge danger" style="text-align: center;">Sin Token</span>
+                <button id="configApiBtn" class="config-api-btn" title="Configurar URL del API">
+                    <ion-icon name="settings-outline"></ion-icon>
+                    <span>Configurar API</span>
+                </button>
             </div>
         </aside>
 
