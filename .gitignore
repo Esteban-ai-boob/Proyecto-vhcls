@@ -1,0 +1,32 @@
+# Ignore files
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.classpath
+.project
+.c9/
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+.m2/
+apache-maven-3.9.9/
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Build output
+build/
+bin/
+
+# Logs
+logs/
+*.log

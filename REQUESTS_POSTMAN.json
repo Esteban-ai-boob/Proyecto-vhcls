@@ -1,0 +1,222 @@
+{
+  "requests": [
+    {
+      "name": "1. Crear Documento - Licencia",
+      "method": "POST",
+      "url": "http://localhost:9001/api/documents",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "documentCode": "LIC-001",
+        "documentName": "Licencia de Conducción",
+        "vehicleTypeApplicability": "A",
+        "mandatoryFlag": "RA",
+        "description": "Licencia de conducción tipo A"
+      },
+      "description": "Crear un tipo de documento parametrizado",
+      "expectedResponse": {
+        "status": 201,
+        "example": {
+          "id": 1,
+          "documentCode": "LIC-001",
+          "documentName": "Licencia de Conducción",
+          "vehicleTypeApplicability": "A",
+          "mandatoryFlag": "RA"
+        }
+      }
+    },
+    {
+      "name": "2. Crear Documento - SOAT",
+      "method": "POST",
+      "url": "http://localhost:9001/api/documents",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "documentCode": "SOAT-001",
+        "documentName": "Certificado SOAT",
+        "vehicleTypeApplicability": "A",
+        "mandatoryFlag": "RM",
+        "description": "Seguro obligatorio de accidentes de tránsito"
+      },
+      "description": "Crear documento SOAT"
+    },
+    {
+      "name": "3. Crear Vehículo con Documentos",
+      "method": "POST",
+      "url": "http://localhost:9001/api/vehicles",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "licensePlate": "ABC-1234",
+        "vehicleType": "A",
+        "serviceType": "PUBLICO",
+        "fuelType": "GASOLINA",
+        "passengerCapacity": 5,
+        "color": "ROJO",
+        "modelYear": 2023,
+        "brand": "Toyota",
+        "line": "Corolla",
+        "documentIds": [1, 2]
+      },
+      "description": "Crear un vehículo con documentos asociados",
+      "expectedResponse": {
+        "status": 201,
+        "example": {
+          "id": 1,
+          "licensePlate": "ABC-1234",
+          "vehicleType": "A",
+          "documents": [
+            {
+              "id": 1,
+              "document": {
+                "id": 1,
+                "documentCode": "LIC-001",
+                "documentName": "Licencia de Conducción"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Cargar Documento con Base64 y Enviar Correo",
+      "method": "POST",
+      "url": "http://localhost:9001/api/vehicles/1/documents",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "documentId": 1,
+        "issuanceDate": "2024-01-15",
+        "expirationDate": "2026-01-15",
+        "documentStatus": "EN_VERIFICACION",
+        "documentContent": "JVBERi0xLjQKJeLjz9MNCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iag==",
+        "notificationEmail": "penuelacarvajal@gmail.com"
+      },
+      "description": "Cargar un documento en Base64 y enviar notificación por correo",
+      "notes": [
+        "El documentContent es un ejemplo de PDF codificado en Base64",
+        "Reemplázalo con tu propio archivo convertido a Base64",
+        "El correo será enviado a la dirección especificada en notificationEmail",
+        "Usa el script generar_base64.py para convertir archivos a Base64"
+      ],
+      "expectedResponse": {
+        "status": 201,
+        "example": {
+          "id": 1,
+          "vehicle": {
+            "id": 1,
+            "licensePlate": "ABC-1234"
+          },
+          "document": {
+            "id": 1,
+            "documentCode": "LIC-001",
+            "documentName": "Licencia de Conducción"
+          },
+          "documentStatus": "EN_VERIFICACION",
+          "documentContent": "JVBERi0xLjQKJeLjz9MNCjEgMCBvYmoK..."
+        }
+      }
+    },
+    {
+      "name": "5. Obtener Vehículos con Documentos",
+      "method": "GET",
+      "url": "http://localhost:9001/api/vehicles",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "description": "Obtener lista de vehículos con documentos asociados",
+      "expectedResponse": {
+        "status": 200,
+        "example": [
+          {
+            "id": 1,
+            "licensePlate": "ABC-1234",
+            "vehicleType": "A",
+            "documents": [
+              {
+                "id": 1,
+                "document": {
+                  "documentCode": "LIC-001"
+                },
+                "documentStatus": "EN_VERIFICACION"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "6. Obtener Vehículo Específico",
+      "method": "GET",
+      "url": "http://localhost:9001/api/vehicles/1",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "description": "Obtener detalles de un vehículo específico",
+      "expectedResponse": {
+        "status": 200
+      }
+    },
+    {
+      "name": "7. Actualizar Documento del Vehículo",
+      "method": "PUT",
+      "url": "http://localhost:9001/api/vehicles/1/documents/1",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "issuanceDate": "2024-02-15",
+        "expirationDate": "2026-02-15",
+        "documentStatus": "HABILITADO"
+      },
+      "description": "Actualizar estado y fechas de un documento"
+    },
+    {
+      "name": "8. Obtener Documentos Parametrizados",
+      "method": "GET",
+      "url": "http://localhost:9001/api/documents",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "description": "Obtener lista de tipos de documentos",
+      "expectedResponse": {
+        "status": 200,
+        "example": [
+          {
+            "id": 1,
+            "documentCode": "LIC-001",
+            "documentName": "Licencia de Conducción",
+            "vehicleTypeApplicability": "A"
+          }
+        ]
+      }
+    }
+  ],
+  "configuracion": {
+    "baseUrl": "http://localhost:9001",
+    "puerto": 9001,
+    "baseDatos": "ppooii",
+    "usuarioBD": "root",
+    "contraseniaBD": "mysqlroot",
+    "correoNotificacion": "penuelacarvajal@gmail.com"
+  },
+  "pasos_para_probar": [
+    "1. Asegúrate que MySQL está corriendo",
+    "2. Inicia la aplicación: mvn spring-boot:run",
+    "3. Abre Postman",
+    "4. Importa este archivo (Raw > Paste > Copy > Import as cURL)",
+    "5. Ejecuta en orden: 1 → 2 → 3 → 4 → 5",
+    "6. Revisa el correo recibido en penuelacarvajal@gmail.com",
+    "7. Verifica la Base64 guardada en la BD"
+  ],
+  "notas": {
+    "base64": "Para generar Base64 de tus propios archivos, usa: base64 archivo.pdf",
+    "email": "Configura credenciales SMTP en application.properties",
+    "documentContent": "Opcional - si no lo incluyes, se guardará como NULL",
+    "notificationEmail": "Opcional - solo se envía correo si lo especificas"
+  }
+}

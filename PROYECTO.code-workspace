@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.import.maven.enabled": true,
+		"java.autobuild.enabled": true,
+		"java.import.generatesMetadataFilesAtProjectRoot": false,
+		"maven.executable.path": "C:\\Users\\esteban\\Nueva carpeta (2)\\apache-maven-3.9.9\\bin\\mvn.cmd",
+		"java.debug.settings.onBuildFailureProceed": true,
+		"chat.tools.terminal.autoApprove": {
+			"mvn clean": true,
+			"mvn package": true,
+			"mvn compile": true,
+			"/^mvn -v$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"mvn -f \"c:\\Users\\esteban\\Nueva": true
+		}
+	}
+}

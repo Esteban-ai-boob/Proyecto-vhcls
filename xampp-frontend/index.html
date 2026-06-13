@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPOOII | Mapa Operativo Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- Ionicons for modern icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <!-- XLSX for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="index.js" defer></script>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Procesando solicitud...</p>
+    </div>
+    <div class="app-container">
+        <!-- Navigation Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>PPOOII</h1>
+                <p>Laboratorio Operativo</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Inicialización</div>
+                    <div class="nav-item active" data-target="panel-auth">
+                        <ion-icon name="key-outline"></ion-icon>
+                        Autenticación
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Consultas (Requisitos)</div>
+                    <div class="nav-item" data-target="panel-route">
+                        <ion-icon name="map-outline"></ion-icon>
+                        Consulta de Ruta
+                    </div>
+                    <div class="nav-item" data-target="panel-personas" id="loadPersonasBtn">
+                        <ion-icon name="people-outline"></ion-icon>
+                        Personas/Usuarios
+                    </div>
+                    <div class="nav-item" data-target="panel-driver">
+                        <ion-icon name="person-outline"></ion-icon>
+                        Por Conductor
+                    </div>
+                    <div class="nav-item" data-target="panel-vehicle">
+                        <ion-icon name="car-outline"></ion-icon>
+                        Por Placa
+                    </div>
+                    <div class="nav-item" data-target="panel-blocked">
+                        <ion-icon name="warning-outline"></ion-icon>
+                        No Habilitadas
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Operaciones</div>
+                    <div class="nav-item" data-target="panel-add-stop">
+                        <ion-icon name="add-circle-outline"></ion-icon>
+                        Agregar Parada
+                    </div>
+                    <div class="nav-item" data-target="panel-excel">
+                        <ion-icon name="document-text-outline"></ion-icon>
+                        Carga Excel Masiva
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Admin Dashboard</div>
+                    <div class="nav-item" data-target="panel-manage-personas" id="navManagePersonas">
+                        <ion-icon name="people-circle-outline"></ion-icon>
+                        Gestión Personas
+                    </div>
+                    <div class="nav-item" data-target="panel-manage-vehicles" id="navManageVehicles">
+                        <ion-icon name="car-sport-outline"></ion-icon>
+                        Gestión Vehículos
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestión de Rutas</div>
+                    <div class="nav-item" data-target="panel-document">
+                        <ion-icon name="mail-outline"></ion-icon>
+                        Envío Documentos
+                    </div>
+                    <div class="nav-item" data-target="panel-tasks">
+                        <ion-icon name="timer-outline"></ion-icon>
+                        Tareas Programadas
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Monitorización</div>
+                    <div class="nav-item" data-target="panel-rabbitmq" id="navRabbitMQ">
+                        <ion-icon name="pulse-outline"></ion-icon>
+                        Colas RabbitMQ
+                    </div>
+                </div>
+            </nav>
+
+            <div class="auth-badge-container">
+                <span id="authBadge" class="badge danger">Sin Token</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Map Layer -->
+            <div id="map"></div>
+
+            <!-- Floating Action Panels Container -->
+            <div class="action-panel-container">
+                
+                <!-- Authentication Panel -->
+                <div id="panel-auth" class="panel active">
+                    <h2>Autenticación</h2>
+                    <p class="mb-2">Genera el token JWT para interactuar con los servicios protegidos.</p>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Usuario</label>
+                            <input id="username" value="demo" autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label>Clave</label>
+                            <input id="password" value="demo123" type="password" autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input id="apiKey" value="APIKEY-DEMO-123">
+                    </div>
+                    <button id="loginBtn" class="primary w-full"><ion-icon name="log-in-outline"></ion-icon> Autenticar</button>
+                    <p class="hint text-center mt-2">Paso obligatorio antes de ejecutar cualquier consulta protegida.</p>
+                </div>
+
+                <!-- Consult Route Panel -->
+                <div id="panel-route" class="panel">
+                    <h2>Consulta de Ruta</h2>
+                    <p class="mb-2">Visualiza en orden los trayectos de un código de ruta específico.</p>
+                    <div class="form-group">
+                        <label>Código de Ruta</label>
+                        <input id="routeCode" value="RUTA-IBG-01">
+                    </div>
+                    <button id="loadRouteBtn" class="primary w-full"><ion-icon name="search-outline"></ion-icon> Consultar y Dibujar</button>
+                    
+                    <div class="metrics-grid mt-2 hidden" id="routeMetrics">
+                        <div class="metric-card">
+                            <div class="metric-label">Paradas</div>
+                            <div class="metric-value" id="stopCount">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Dibujadas</div>
+                            <div class="metric-value" id="mappedCount">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Distancia</div>
+                            <div class="metric-value" id="routeDistance">0km</div>
+                        </div>
+                    </div>
+                    
+                    <button id="inlineAddStopBtn" class="w-full mt-2" style="background: var(--bg-card);"><ion-icon name="add-circle-outline"></ion-icon> Agregar Parada a esta Ruta</button>
+                    
+                    <ul id="stopList" class="stop-list"></ul>
+                </div>
+
+                <!-- Personas Panel -->
+                <div id="panel-personas" class="panel">
+                    <h2>Personas y Usuarios</h2>
+                    <p class="mb-2">Lista de personas registradas en el sistema.</p>
+                    <ul id="personasList" class="stop-list" style="max-height: 400px;"></ul>
+                </div>
+
+                <!-- Admin Personas Panel -->
+                <div id="panel-manage-personas" class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0;">Gestión de Personas</h2>
+                        <button id="btnShowCreatePersona" class="primary" style="padding: 0.5rem 1rem;"><ion-icon name="add-outline"></ion-icon> Nuevo</button>
+                    </div>
+                    
+                    <div id="formCreatePersona" class="hidden" style="background: var(--bg-card); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3>Crear Persona</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Identificación</label>
+                                <input id="newPersonaId" type="text" placeholder="Ej: 102030">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Identificación</label>
+                                <select id="newPersonaIdType">
+                                    <option value="CC">CC</option>
+                                    <option value="CE">CE</option>
+                                    <option value="TI">TI</option>
+                                    <option value="PAS">PAS</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nombres</label>
+                                <input id="newPersonaNames" type="text" placeholder="Ej: Juan">
+                            </div>
+                            <div class="form-group">
+                                <label>Apellidos</label>
+                                <input id="newPersonaLastnames" type="text" placeholder="Ej: Perez">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo Persona</label>
+                                <select id="newPersonaType">
+                                    <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                                    <option value="CONDUCTOR">CONDUCTOR</option>
+                                    <option value="CLIENTE">CLIENTE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="button-group" style="justify-content: flex-end;">
+                            <button id="btnCancelPersona" class="secondary">Cancelar</button>
+                            <button id="btnSavePersona" class="primary">Guardar</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Identificación</th>
+                                    <th>Nombres Completos</th>
+                                    <th>Tipo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPersonasList">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Admin Vehicles Panel -->
+                <div id="panel-manage-vehicles" class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0;">Gestión de Vehículos</h2>
+                        <button id="btnShowCreateVehicle" class="primary" style="padding: 0.5rem 1rem;"><ion-icon name="add-outline"></ion-icon> Nuevo</button>
+                    </div>
+
+                    <div id="formCreateVehicle" class="hidden" style="background: var(--bg-card); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3>Crear Vehículo</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Placa</label>
+                                <input id="newVehiclePlate" type="text" placeholder="Ej: XYZ123">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo Vehículo</label>
+                                <select id="newVehicleType">
+                                    <option value="AUTOMOVIL">AUTOMOVIL</option>
+                                    <option value="MOTOCICLETA">MOTOCICLETA</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Servicio</label>
+                                <select id="newVehicleService">
+                                    <option value="PUBLICO">PUBLICO</option>
+                                    <option value="PRIVADO">PRIVADO</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Combustible</label>
+                                <select id="newVehicleFuel">
+                                    <option value="GASOLINA">GASOLINA</option>
+                                    <option value="GAS">GAS</option>
+                                    <option value="DIESEL">DIESEL</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Documento Asignado (Requerido)</label>
+                                <select id="newVehicleDocId">
+                                    <option value="">Cargando documentos...</option>
+                                </select>
+                                <p class="hint">Regla: No se puede crear vehículo sin un documento. Se listan los documentos válidos.</p>
+                            </div>
+                        </div>
+                        <div class="button-group" style="justify-content: flex-end;">
+                            <button id="btnCancelVehicle" class="secondary">Cancelar</button>
+                            <button id="btnSaveVehicle" class="primary">Guardar</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Tipo</th>
+                                    <th>Servicio</th>
+                                    <th>Combustible</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminVehiclesList">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Driver Panel -->
+                <div id="panel-driver" class="panel">
+                    <h2>Por Conductor</h2>
+                    <p class="mb-2">Visualiza los códigos de rutas agrupados por conductor.</p>
+                    <div class="form-group">
+                        <label>Identificación del Conductor</label>
+                        <input id="driverId" value="100000002">
+                    </div>
+                    <button id="driverRoutesBtn" class="primary w-full"><ion-icon name="search-outline"></ion-icon> Consultar Rutas</button>
+                </div>
+
+                <!-- Vehicle Panel -->
+                <div id="panel-vehicle" class="panel">
+                    <h2>Por Placa</h2>
+                    <p class="mb-2">Visualiza código de ruta y conductor asociado agrupados por vehículo.</p>
+                    <div class="form-group">
+                        <label>Placa del Vehículo</label>
+                        <input id="plate" value="ABC123">
+                    </div>
+                    <button id="plateRoutesBtn" class="primary w-full"><ion-icon name="search-outline"></ion-icon> Consultar Rutas</button>
+                </div>
+
+                <!-- Blocked Routes Panel -->
+                <div id="panel-blocked" class="panel">
+                    <h2>Rutas No Habilitadas</h2>
+                    <p class="mb-2">Consulta trayectos donde el vehículo NO esté habilitado o el conductor esté Restringido (RO).</p>
+                    <button id="blockedRoutesBtn" class="primary w-full"><ion-icon name="warning-outline"></ion-icon> Buscar Rutas Bloqueadas</button>
+                </div>
+
+                <!-- Add Stop Panel -->
+                <div id="panel-add-stop" class="panel">
+                    <h2>Agregar Parada</h2>
+                    <p class="mb-2">La creación está condicionada a la habilitación del conductor (PO) y del vehículo.</p>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input id="addName" value="Nueva parada">
+                        </div>
+                        <div class="form-group">
+                            <label>Destino (Ruta)</label>
+                            <input id="addRouteCode" value="RUTA-IBG-01">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ubicación (Haz clic en el mapa)</label>
+                        <input id="addLocation" placeholder="Selecciona un punto en el mapa...">
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Latitud *</label>
+                            <input id="addLat" type="number" step="any" placeholder="Ej: 4.4389">
+                        </div>
+                        <div class="form-group">
+                            <label>Longitud *</label>
+                            <input id="addLng" type="number" step="any" placeholder="Ej: -75.2322">
+                        </div>
+                    </div>
+                    <button id="addStopBtn" class="primary w-full"><ion-icon name="add-circle"></ion-icon> Guardar Parada</button>
+                </div>
+
+                <!-- Excel Upload Panel -->
+                <div id="panel-excel" class="panel">
+                    <h2>Carga Masiva Excel</h2>
+                    <p class="mb-2">Cargue usando procedimientos almacenados de BD.</p>
+                    <div class="form-group">
+                        <label>Archivo Excel (.xlsx)</label>
+                        <input id="excelInput" type="file" accept=".xlsx,.xls">
+                    </div>
+                    <div class="button-group">
+                        <button id="uploadExcelBtn" class="primary w-full"><ion-icon name="cloud-upload-outline"></ion-icon> Cargar</button>
+                        <button id="sampleExcelBtn" class="w-full"><ion-icon name="document-outline"></ion-icon> Usar Prueba</button>
+                    </div>
+                    
+                    <div class="form-group mt-2">
+                        <label>Consultar Estado de Cargue</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input id="loadId" placeholder="ID de cargue generado">
+                            <button id="checkLoadBtn"><ion-icon name="search"></ion-icon></button>
+                        </div>
+                    </div>
+                    <div class="form-group hidden" id="generatedRouteContainer">
+                        <label>Ruta Generada</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input id="generatedRouteCode" readonly>
+                            <button id="viewGeneratedRouteBtn" class="primary"><ion-icon name="eye"></ion-icon></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Panel -->
+                <div id="panel-document" class="panel">
+                    <h2>Envío de Documentos</h2>
+                    <p class="mb-2">Procesa un documento a Base64 y envía notificación.</p>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Vehículo ID</label>
+                            <input id="vehicleId" value="1001" type="number">
+                        </div>
+                        <div class="form-group">
+                            <label>Documento ID</label>
+                            <input id="documentId" value="9503" type="number">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Notificación</label>
+                        <input id="email" value="demo@mailtrap.io" type="email">
+                    </div>
+                    <div class="form-group">
+                        <label>Archivo a Convertir</label>
+                        <input id="fileInput" type="file">
+                    </div>
+                    <div class="form-group">
+                        <label>Código Base64 Generado</label>
+                        <textarea id="base64Text" readonly placeholder="Sube un archivo para ver aquí su código..." style="width: 100%; height: 80px; resize: vertical; font-family: monospace; font-size: 12px;"></textarea>
+                    </div>
+                    <button id="copyBase64Btn" type="button" class="w-full mb-2" style="background-color: var(--bg-card);"><ion-icon name="copy-outline"></ion-icon> Copiar Base64</button>
+                    <button id="sendDocumentBtn" class="primary w-full"><ion-icon name="paper-plane-outline"></ion-icon> Enviar Documento</button>
+                </div>
+
+                <!-- Tasks Panel -->
+                <div id="panel-tasks" class="panel">
+                    <h2>Tareas Programadas</h2>
+                    <p class="mb-2">El backend ejecuta tareas automáticamente:</p>
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        <li class="mb-2">✅ <strong>Cada 2 min:</strong> Verifica vigencia licencias → RO</li>
+                        <li class="mb-2">✅ <strong>Cada 2 min:</strong> Verifica vigencia docs vehículo → VENCIDO</li>
+                        <li class="mb-2">✅ <strong>Cada 90 seg:</strong> Completa coordenadas de trayectos nulos vía Google Maps API</li>
+                    </ul>
+                    <button id="refreshTasksBtn" class="primary w-full mt-2"><ion-icon name="refresh"></ion-icon> Recargar Mapa Operativo</button>
+                </div>
+
+                <!-- RabbitMQ Panel -->
+                <div id="panel-rabbitmq" class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0;">Monitor de RabbitMQ</h2>
+                        <button id="btnRefreshRabbitMQ" class="primary" style="padding: 0.5rem;"><ion-icon name="refresh-outline"></ion-icon></button>
+                    </div>
+                    <p class="mb-2">Monitoreo en tiempo real de la cola de mensajería asíncrona.</p>
+                    
+                    <div class="metrics-grid mb-2">
+                        <div class="metric-card">
+                            <div class="metric-label">En Cola</div>
+                            <div class="metric-value" id="rmqInQueue">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Procesados</div>
+                            <div class="metric-value" id="rmqProcessed">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Consumidores</div>
+                            <div class="metric-value" id="rmqConsumers" style="color: var(--primary-color);">0</div>
+                        </div>
+                    </div>
+                    
+                    <h3>Últimos Mensajes Procesados</h3>
+                    <div id="rmqLatestMessages" style="background: #1e1e1e; color: #a6e22e; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto;">
+                        <p style="color: var(--text-muted);">Esperando mensajes...</p>
+                    </div>
+                    
+                    <div class="form-group mt-2">
+                        <label>
+                            <input type="checkbox" id="rmqAutoRefresh" checked> Autorefrescar cada 2 segundos
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Global Result Output -->
+            <div class="result-panel" id="resultPanel">
+                <div class="result-header" id="toggleResultBtn">
+                    <div class="result-title"><ion-icon name="terminal-outline"></ion-icon> Respuesta API</div>
+                    <div id="status">Esperando acción...</div>
+                    <ion-icon name="chevron-up-outline" id="resultToggleIcon"></ion-icon>
+                </div>
+                <div id="resultOutput">No hay peticiones recientes.</div>
+            </div>
+
+            <!-- Toast Container -->
+            <div id="toast-container" class="toast-container"></div>
+        </main>
+    </div>
+</body>
+</html>
